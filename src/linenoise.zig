@@ -49,37 +49,59 @@ pub const FeedResult = union(enum) {
 };
 
 /// Registers the callback used for tab-completion.
-pub const setCompletionCallback = c.linenoiseSetCompletionCallback;
+pub fn setCompletionCallback(callback: CompletionCallback) void {
+    c.linenoiseSetCompletionCallback(callback);
+}
 
 /// Registers the callback used to show hints on the right side of the prompt.
-pub const setHintsCallback = c.linenoiseSetHintsCallback;
+pub fn setHintsCallback(callback: HintsCallback) void {
+    c.linenoiseSetHintsCallback(callback);
+}
 
-/// Registers the function that frees buffers returned by the hints callback.
-pub const setFreeHintsCallback = c.linenoiseSetFreeHintsCallback;
+/// Registers the function that frees buffers returned by a hints callback.
+pub fn setFreeHintsCallback(callback: FreeHintsCallback) void {
+    c.linenoiseSetFreeHintsCallback(callback);
+}
 
 /// Adds a completion option from inside a completion callback.
-pub const addCompletion = c.linenoiseAddCompletion;
+pub fn addCompletion(completions: *Completions, completion: [:0]const u8) void {
+    c.linenoiseAddCompletion(completions, completion.ptr);
+}
 
 /// Hides the current edited line while using the multiplexed API.
-pub const hide = c.linenoiseHide;
+pub fn hide(state: *State) void {
+    c.linenoiseHide(state);
+}
 
 /// Re-renders the current edited line while using the multiplexed API.
-pub const show = c.linenoiseShow;
+pub fn show(state: *State) void {
+    c.linenoiseShow(state);
+}
 
 /// Clears the terminal screen.
-pub const clearScreen = c.linenoiseClearScreen;
+pub fn clearScreen() void {
+    c.linenoiseClearScreen();
+}
 
 /// Enables or disables multi-line editing mode.
-pub const setMultiLine = c.linenoiseSetMultiLine;
+pub fn setMultiLine(enabled: bool) void {
+    c.linenoiseSetMultiLine(@intFromBool(enabled));
+}
 
 /// Prints key codes for interactive debugging.
-pub const printKeyCodes = c.linenoisePrintKeyCodes;
+pub fn printKeyCodes() void {
+    c.linenoisePrintKeyCodes();
+}
 
 /// Replaces visible input with `*`, useful for password prompts.
-pub const maskModeEnable = c.linenoiseMaskModeEnable;
+pub fn maskModeEnable() void {
+    c.linenoiseMaskModeEnable();
+}
 
 /// Disables password masking mode.
-pub const maskModeDisable = c.linenoiseMaskModeDisable;
+pub fn maskModeDisable() void {
+    c.linenoiseMaskModeDisable();
+}
 
 /// Reads a single line using linenoise's blocking API.
 ///

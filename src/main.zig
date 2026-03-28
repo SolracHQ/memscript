@@ -1,13 +1,18 @@
 const std = @import("std");
 const memscript = @import("memscript");
 
+const Lua = memscript.Lua;
+const Api = memscript.Api;
+const Repl = memscript.Repl;
+const Context = memscript.Context;
+
 pub fn main(init: std.process.Init) !void {
     const gpa: std.mem.Allocator = init.gpa;
     const args = try init.minimal.args.toSlice(gpa);
     defer gpa.free(args);
     var stdout_buffer: [4096]u8 = undefined;
     var stderr_buffer: [4096]u8 = undefined;
-    const context = memscript.Context.init(gpa, init.io, &stdout_buffer, &stderr_buffer);
+    const context = Context.init(gpa, init.io, &stdout_buffer, &stderr_buffer);
 
     if (args.len > 2) {
         try printUsage(context, args[0]);
@@ -19,36 +24,36 @@ pub fn main(init: std.process.Init) !void {
         std.process.exit(1);
     }
 
-    const state = try memscript.Lua.init();
-    defer memscript.Lua.deinit(state);
+    const state = try Lua.init();
+    defer Lua.deinit(state);
 
-    memscript.Lua.openLibs(state);
-    memscript.Api.register(state);
+    Lua.openLibs(state);
+    Api.register(state, &context);
 
     if (args.len == 1) {
-        try memscript.Repl.run(context, state);
+        try Repl.run(context, state);
         return;
     }
 
     const script_path = try gpa.dupeZ(u8, args[1]);
 
-    memscript.Lua.loadFile(state, .{ .path = script_path }) catch |err| {
+    Lua.loadFile(state, .{ .path = script_path }) catch |err| {
         try printLuaFailure(context, state, "failed to load script", err);
         std.process.exit(1);
     };
 
-    memscript.Lua.protectedCall(state, 0, memscript.Lua.mult_return, 0) catch |err| {
+    Lua.protectedCall(state, 0, Lua.MULT_RETURN, 0) catch |err| {
         try printLuaFailure(context, state, "script execution failed", err);
         std.process.exit(1);
     };
 }
 
-fn printUsage(context: memscript.Context, exe_name: []const u8) !void {
+fn printUsage(context: Context, exe_name: []const u8) !void {
     try context.printStderr("usage: {s} [script.lua]\n", .{exe_name});
 }
 
-fn printLuaFailure(context: memscript.Context, state: *memscript.Lua.State, prefix: []const u8, err: anyerror) !void {
-    if (memscript.Lua.toString(state, -1)) |message| {
+fn printLuaFailure(context: Context, state: *Lua.State, prefix: []const u8, err: anyerror) !void {
+    if (Lua.toString(state, -1)) |message| {
         try context.printStderr("{s}: {s}\n", .{ prefix, message });
         return;
     }

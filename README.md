@@ -9,27 +9,39 @@ The first end-to-end prototype works.
 
 - `memscript <script.lua>` boots Lua, registers a global `mem` table, loads the script, and runs it.
 - `mem.read_u32(pid, address)` and `mem.write_u32(pid, address, value)` work against a live Linux process.
+- `proc.list()` returns live process entries, with optional name filtering.
 - The example target in `example/target.c` can be modified from `example/example.lua`.
 
 ## Goals
 
-- [ ] Parse `/proc/<pid>/maps` and expose memory regions cleanly
-- [ ] Add exploratory tools such as `list_processes()` and `list_mem_regions(pid)`
-- [ ] Add memory scanning across all readable regions or a selected region
-- [ ] Add a REPL, likely backed by Linenoise or a similar line-editing library
-- [ ] Revisit the Lua surface before it hardens: current `read_u32`/`write_u32`, typed `read(type, pid, address)`, or table-driven calls are all still on the table
+- [x] Add a REPL, backed by Linenoise
+- [x] Parse `/proc/<pid>/maps` and expose memory regions
+- [x] Add `proc.list()` and process/region objects with methods (see API below)
+- [ ] Add memory scanning and rescanning across regions
+- [ ] Add pinning: hold a memory value at a fixed value for the lifetime of the script
 
-## Planned API
+## API
 
 ```lua
-local pid = 1234
-local address = 0x12345678
+-- list processes, optionally filtered by name substring
+local procs = proc.list({name = "target"})
+local p = procs[1]
 
-local value = mem.read_u32(pid, address)
-print("value: " .. value)
+-- list memory regions, optionally filtered by permissions
+local regions = p:regions({perms = "rw"})
 
-mem.write_u32(pid, address, 42)
-print("Value at address after write: " .. mem.read_u32(pid, address))
+-- scan a single region or the whole process
+local entries = regions[1]:scan({type = "float", eq = 8.3})
+local entries = p:scan({type = "float", eq = 8.3})
+
+-- narrow down results
+entries = entries:rescan({in_range = {min = 1.0, max = 10.0}})
+
+-- read, write, or pin an entry
+print(entries[1]:get())
+entries[1]:set(9.0)
+entries[1]:pin(9.0, {interval_ms = 100})
+entries[1]:unpin()
 ```
 
 ## Example
