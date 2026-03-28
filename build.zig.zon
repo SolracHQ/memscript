@@ -1,0 +1,16 @@
+.{
+    .name = .memscript,
+    .version = "0.0.1",
+    .fingerprint = 0x940cd73efe277c99,
+    .minimum_zig_version = "0.16.0-dev.2984+cb7d2b056",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "CHANGELOG.md",
+        "LICENSE",
+        "README.md",
+        "example",
+        "src",
+    },
+}
