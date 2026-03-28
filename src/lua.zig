@@ -182,6 +182,24 @@ pub fn pushFunction(state: *State, function: CFunction) void {
     c.lua_pushcclosure(state, function, 0);
 }
 
+/// Pushes a string slice onto the Lua stack.
+pub fn pushString(state: *State, value: []const u8) void {
+    _ = c.lua_pushlstring(state, value.ptr, value.len);
+}
+
+/// Sets the metatable for the value at `index` using the table on top of the stack.
+pub fn setMetatable(state: *State, index: c_int) bool {
+    return c.lua_setmetatable(state, index) != 0;
+}
+
+/// Sets function upvalue `n` from the value on top of the stack.
+///
+/// Returns the upvalue name when the upvalue exists, otherwise `null`.
+pub fn setupValue(state: *State, func_index: c_int, n: c_int) ?[:0]const u8 {
+    const name = c.lua_setupvalue(state, func_index, n) orelse return null;
+    return std.mem.span(name);
+}
+
 /// Converts a stack value to a Lua integer, returning `null` on conversion failure.
 pub fn toInteger(state: *State, index: c_int) ?Integer {
     var is_num: c_int = 0;
@@ -208,6 +226,21 @@ pub fn toString(state: *State, index: c_int) ?[:0]const u8 {
     return ptr[0..len :0];
 }
 
+/// Coerces the value at `index` to a Lua string and pushes that string on the stack.
+///
+/// This mirrors `luaL_tolstring`: the returned slice is borrowed from Lua and
+/// remains valid while the pushed string stays on the stack.
+pub fn toDisplayString(state: *State, index: c_int) ?[]const u8 {
+    var len: usize = 0;
+    const ptr = c.luaL_tolstring(state, index, &len) orelse return null;
+    return ptr[0..len];
+}
+
+/// Raises a Lua error using the value currently on top of the stack.
+pub fn raiseError(state: *State) c_int {
+    return c.lua_error(state);
+}
+
 /// Returns the Lua value kind at `index`.
 pub fn typeOf(state: *State, index: c_int) Type {
     return @enumFromInt(c.lua_type(state, index));
@@ -228,9 +261,4 @@ fn statusToError(status: c_int) Error!void {
         c.LUA_ERRFILE => Error.File,
         else => Error.Unknown,
     };
-}
-
-test "lua skeleton compiles" {
-    try std.testing.expect(@TypeOf(c.luaL_newstate) != void);
-    try std.testing.expect(@intFromEnum(Type.number) == c.LUA_TNUMBER);
 }

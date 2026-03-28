@@ -11,6 +11,9 @@ pub fn build(b: *std.Build) void {
     mod.linkSystemLibrary("lua", .{});
     mod.link_libc = true;
 
+    mod.addCSourceFile(.{ .file = b.path("vendor/linenoise/linenoise.c"), .flags = &.{} });
+    mod.addIncludePath(b.path("vendor/linenoise"));
+
     const exe = b.addExecutable(.{
         .name = "memscript",
         .root_module = b.createModule(.{

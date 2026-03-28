@@ -64,6 +64,6 @@ fn raiseMemoryError(state: *lua.State, operation: []const u8, err: memory.Error)
 }
 
 fn raiseLuaError(state: *lua.State, message: []const u8) c_int {
-    _ = lua.c.lua_pushlstring(state, message.ptr, message.len);
-    return lua.c.lua_error(state);
+    lua.pushString(state, message);
+    return lua.raiseError(state);
 }
