@@ -6,6 +6,7 @@ pub const Lua = @import("lua.zig");
 pub const Memory = @import("memory.zig");
 pub const Maps = @import("maps.zig");
 pub const Proc = @import("proc.zig");
+pub const Scan = @import("scan.zig");
 pub const Api = @import("api.zig");
 pub const Repl = @import("repl.zig");
 
@@ -16,6 +17,7 @@ test "root exports are available" {
     _ = Memory;
     _ = Maps;
     _ = Proc;
+    _ = Scan;
     _ = Api;
     _ = Repl;
     try std.testing.expect(true);

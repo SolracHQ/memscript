@@ -45,6 +45,21 @@ pub fn readU32(pid: std.posix.pid_t, address: usize) Error!u32 {
     return @bitCast(buffer);
 }
 
+/// Reads an arbitrary byte range from another process into `buffer`.
+pub fn readBytes(pid: std.posix.pid_t, address: usize, buffer: []u8) Error!void {
+    if (buffer.len == 0) return;
+
+    const local = [_]iovec{.{
+        .base = buffer.ptr,
+        .len = buffer.len,
+    }};
+    const remote = [_]iovec_const{.{
+        .base = @ptrFromInt(address),
+        .len = buffer.len,
+    }};
+    try expectFullTransfer(linux.process_vm_readv(pid, &local, &remote, 0), buffer.len);
+}
+
 /// Writes a single native-endian `u32` into another process.
 ///
 /// The syscall is not atomic across processes; this wrapper only guarantees
@@ -53,6 +68,21 @@ pub fn writeU32(pid: std.posix.pid_t, address: usize, value: u32) Error!void {
     const bytes: [4]u8 = @bitCast(value);
     const local = [_]iovec_const{.{
         .base = bytes[0..].ptr,
+        .len = bytes.len,
+    }};
+    const remote = [_]iovec_const{.{
+        .base = @ptrFromInt(address),
+        .len = bytes.len,
+    }};
+    try expectFullTransfer(linux.process_vm_writev(pid, &local, &remote, 0), bytes.len);
+}
+
+/// Writes an arbitrary byte range into another process.
+pub fn writeBytes(pid: std.posix.pid_t, address: usize, bytes: []const u8) Error!void {
+    if (bytes.len == 0) return;
+
+    const local = [_]iovec_const{.{
+        .base = bytes.ptr,
         .len = bytes.len,
     }};
     const remote = [_]iovec_const{.{

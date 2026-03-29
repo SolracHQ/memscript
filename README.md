@@ -3,45 +3,67 @@
 MemScript is a scriptable process memory inspector and editor, driven by Lua.
 A hobby project to learn Zig and Lua, and mess with game memory along the way.
 
+If you just want to see what it can do, skip to [Usage](#usage).
+For what is coming next, see [planning.md](planning.md).
+
+## Motivation
+
+I grew up using Cheat Engine on Windows and Game Conqueror on Linux. I always wanted to build something like it myself. This is the first attempt that made it past the prototype stage, and the language choices are why.
+
+For the host language I had a specific set of requirements: full control over memory layout and allocation, no exceptions or hidden control flow, generics and a useful stdlib, and a build system that does not make linking third-party code a project of its own. Zig hits all of them. I also just wanted to take a closer look at the language, and this was a good excuse.
+
+For the scripting layer I ruled out a UI early, partly because I wanted something different from existing tools and partly because I am not good at making them. A scripting language gives the user more power, and the first user is me, so I thought about what I would actually want. I chose Lua not because it is my favorite language (1-indexed arrays and `end` delimiters are not for me) but because it meets the requirements that actually matter for an embedded scripting language: genuinely easy to embed in a host program, lightweight, and supported by real tooling. LuaLS in particular is what puts it ahead of the many small embeddable languages that are only known by their creators.
+
 ## Status
 
-The first end-to-end prototype works.
+- `memscript <script.lua>` boots Lua, registers globals, loads the script, and runs it.
+- `memscript` with no arguments starts an interactive REPL with history and tab completion.
+- `proc.list()` enumerates live processes with optional name filtering.
+- `process:scan()` scans all readable memory regions and returns matched entries.
+- `entries:rescan()` narrows a previous result with a new condition.
+- Individual entries support `get()` and `set()`.
 
-- `memscript <script.lua>` boots Lua, registers a global `mem` table, loads the script, and runs it.
-- `mem.read_u32(pid, address)` and `mem.write_u32(pid, address, value)` work against a live Linux process.
-- `proc.list()` returns live process entries, with optional name filtering.
-- The example target in `example/target.c` can be modified from `example/example.lua`.
+## Usage
 
-## Goals
+Run a script:
 
-- [x] Add a REPL, backed by Linenoise
-- [x] Parse `/proc/<pid>/maps` and expose memory regions
-- [x] Add `proc.list()` and process/region objects with methods (see API below)
-- [ ] Add memory scanning and rescanning across regions
-- [ ] Add pinning: hold a memory value at a fixed value for the lifetime of the script
+```sh
+just run ./example/example.lua
+```
+
+Start the REPL:
+
+```sh
+just repl
+```
+
+In the REPL, top-level locals do not persist between lines. Use bare assignment instead:
+
+```lua
+-- this works across lines
+p = proc.list({name = "target"})[1]
+
+-- this does not
+local p = proc.list({name = "target"})[1]
+```
 
 ## API
 
 ```lua
 -- list processes, optionally filtered by name substring
-local procs = proc.list({name = "target"})
-local p = procs[1]
+local p = proc.list({name = "target"})[1]
 
--- list memory regions, optionally filtered by permissions
-local regions = p:regions({perms = "rw"})
-
--- scan a single region or the whole process
-local entries = regions[1]:scan({type = "float", eq = 8.3})
-local entries = p:scan({type = "float", eq = 8.3})
+-- scan the whole process
+local entries = p:scan({type = "f32", eq = 8.3})
+local entries = p:scan({type = "u32", in_range = {min = 0, max = 255}})
 
 -- narrow down results
+entries = entries:rescan({eq = 9.0})
 entries = entries:rescan({in_range = {min = 1.0, max = 10.0}})
 
--- read, write, or pin an entry
+-- read and write individual entries
 print(entries[1]:get())
 entries[1]:set(9.0)
-entries[1]:pin(9.0, {interval_ms = 100})
-entries[1]:unpin()
 ```
 
 ## Example

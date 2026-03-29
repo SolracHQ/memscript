@@ -6,6 +6,11 @@ int main() {
     printf("pid: %d  &health: %p\n", getpid(), (void*)&health);
     while (1) {
         printf("health: %d\n", health);
-        sleep(1);
+        sleep(5);
+        if (health < 50) {
+            health = 50;
+        } else {
+            health -= 1;
+        }
     }
 }

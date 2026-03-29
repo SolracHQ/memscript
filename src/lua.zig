@@ -249,6 +249,11 @@ pub fn setIndex(state: *State, index: StackIndex, key: Integer) void {
     c.lua_seti(state, index, key);
 }
 
+/// Pushes `table[key]` for an integer key onto the stack and returns its type.
+pub fn getIndex(state: *State, index: StackIndex, key: Integer) Type {
+    return @enumFromInt(c.lua_geti(state, index, key));
+}
+
 /// Creates a table with optional array and hash capacity hints.
 pub fn createTable(state: *State, array_capacity: c_int, record_capacity: c_int) void {
     c.lua_createtable(state, array_capacity, record_capacity);
